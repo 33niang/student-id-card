@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>证件与文档生成系统</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, "Times New Roman", sans-serif;
+      background: #f0f2f5; padding: 20px; color: #333;
+    }
+    .container { max-width: 1400px; margin: 0 auto; display: flex; gap: 30px; flex-wrap: wrap; }
+    .control-panel {
+      flex: 0 0 380px; background: #fff; padding: 25px; border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08); height: fit-content; max-height: 90vh; overflow-y: auto;
+    }
+    .preview-area { flex: 1; display: flex; flex-direction: column; gap: 20px; align-items: center; }
+
+    /* 顶部模块切换 */
+    .module-selector { display: flex; gap: 10px; margin-bottom: 20px; }
+    .mod-btn {
+      flex: 1; padding: 10px; border: 2px solid #e5e7eb; background: #fff; border-radius: 8px; cursor: pointer;
+      transition: all .3s; font-size: 14px; font-weight: 600; color: #374151;
+    }
+    .mod-btn:hover { border-color: #3b82f6; transform: translateY(-1px); }
+    .mod-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+    h1 { margin-bottom: 16px; font-size: 22px; display: flex; align-items: center; gap: 8px; }
+    .form-section-title { font-size: 16px; font-weight: 700; color: #212529; margin: 18px 0 12px; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; margin-bottom: 6px; color: #495057; font-size: 14px; font-weight: 500; }
+    input[type="text"], input[type="date"], input[type="email"], textarea, select {
+      width: 100%; padding: 9px 11px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; transition: all .3s; font-family: inherit;
+    }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+    textarea { resize: vertical; min-height: 80px; }
+    input[type="file"] { width: 100%; padding: 8px; border: 2px dashed #e5e7eb; border-radius: 6px; background: #fafafa; font-size: 12px; cursor: pointer; }
+    input[type="file"]:hover { border-color: #3b82f6; background: #f0f7ff; }
+    .button-group { display: flex; gap: 10px; margin-top: 16px; }
+    button {
+      flex: 1; padding: 10px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .3s;
+    }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,.3); }
+    .btn-secondary { background: #6b7280; color: #fff; }
+    .btn-secondary:hover { background: #4b5563; transform: translateY(-1px); }
+    .btn-success { background: #28a745; color: #fff; }
+    .btn-success:hover { background: #218838; transform: translateY(-1px); }
+    .form-separator { height: 1px; background: #e9ecef; margin: 18px -25px; }
+
+    /* 学生证卡片 */
+    .student-card { width: 500px; height: 320px; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.15); }
+    .card-front, .card-back { display: flex; flex-direction: column; height: 100%; }
+    .card-front .header {
+      background: #3b82f6; color: #fff; padding: 15px 20px; display: flex; align-items: center; gap: 15px; height: 90px;
+    }
+    .logo-container { width: 60px; height: 60px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+    .logo-container img { width: 50px; height: 50px; object-fit: contain; }
+    .header-text { flex: 1; }
+    .university-name { font-size: 22px; font-weight: 800; margin-bottom: 2px; line-height: 1.2; }
+    .card-subtitle { font-size: 12px; opacity: .95; line-height: 1.3; letter-spacing: .5px; }
+    .card-body { flex: 1; padding: 20px; display: flex; gap: 20px; background: #fafafa; }
+    .photo-container { width: 100px; height: 130px; background: #e0e0e0; border-radius: 6px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 2px solid #ddd; }
+    .photo-container img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-placeholder { color: #666; font-size: 11px; text-align: center; }
+    .info-section { flex: 1; display: flex; flex-direction: column; justify-content: space-around; padding: 5px 0; }
+    .info-group { margin-bottom: 8px; }
+    .info-label { font-size: 11px; color: #666; letter-spacing: .5px; margin-bottom: 2px; }
+    .info-value { font-size: 16px; font-weight: 600; color: #333; word-break: break-word; }
+    .card-footer {
+      padding: 12px 20px; background: #fff; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e0e0e0; height: 60px;
+    }
+    .date-group { text-align: center; }
+    .date-label { font-size: 10px; color: #666; margin-bottom: 2px; }
+    .date-value { font-size: 13px; font-weight: 600; color: #333; }
+    .card-back .black-bar { height: 50px; background: #000; width: 100%; }
+    .card-back .content { flex: 1; padding: 20px; display: flex; flex-direction: column; }
+    .section-title { font-size: 11px; color: #666; margin-bottom: 6px; letter-spacing: .5px; }
+    .address-text { font-size: 14px; color: #333; line-height: 1.4; }
+    .notice-text { font-size: 11px; color: #666; line-height: 1.6; margin: 15px 0; flex: 1; }
+    .signature-section { display: flex; justify-content: space-between; align-items: flex-end; margin-top: auto; }
+    .signature-text { font-size: 20px; font-family: "Brush Script MT", cursive; color: #333; margin-bottom: 3px; }
+    .signature-label { font-size: 10px; color: #999; }
+    .back-logo { width: 60px; height: 60px; }
+    .back-logo img { width: 100%; height: 100%; object-fit: contain; }
+    .preview-title { font-size: 16px; font-weight: 700; color: #333; margin-bottom: 10px; padding: 8px 15px; background: #fff; border-radius: 8px; text-align: center; width: 500px; }
+
+    /* 证书/通知书样式（A4） */
+    .certificate { width: 210mm; min-height: 297mm; background: #fff; padding: 40mm 30mm; box-shadow: 0 4px 20px rgba(0,0,0,.1); position: relative; display: none; }
+    .certificate.active { display: block; }
+    .certificate-border { position: absolute; top: 20mm; left: 20mm; right: 20mm; bottom: 20mm; border: 3px double #2c5aa0; pointer-events: none; }
+    .admission-letter .letter-header, .enrollment-certificate .certificate-header { text-align: center; margin-bottom: 30px; }
+    .university-logo { width: 80px; height: 80px; margin: 0 auto 20px; background: #2c5aa0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; line-height: 1.2; }
+    .university-name { text-transform: uppercase; letter-spacing: 2px; }
+    .university-name-en { font-size: 18px; color: #495057; margin-bottom: 16px; }
+    .document-title { font-size: 28px; font-weight: 800; color: #2c5aa0; margin: 24px 0; text-align: center; letter-spacing: 3px; }
+    .letter-body { margin: 30px 0; text-align: justify; line-height: 1.8; font-size: 16px; color: #333; }
+    .letter-body p { margin-bottom: 16px; text-indent: 2em; }
+    .student-info { background: #f8f9fa; padding: 18px; margin: 22px 0; border-left: 5px solid #2c5aa0; }
+    .info-row { display: flex; margin-bottom: 10px; font-size: 16px; }
+    .info-label { font-weight: 700; width: 200px; color: #495057; }
+    .info-value { flex: 1; color: #212529; }
+    .signature-block { text-align: center; width: 200px; }
+    .signature-line { border-bottom: 2px solid #333; margin-bottom: 10px; height: 40px; }
+    .signature-title { font-size: 14px; color: #666; }
+    .date-section { text-align: right; margin-top: 30px; font-size: 16px; color: #495057; }
+    .highlight { font-weight: 700; color: #2c5aa0; font-size: 18px; padding: 0 5px; }
+    .seal-section { position: relative; margin-top: 80px; }
+    .official-seal {
+      position: absolute; right: 100px; top: -50px; width: 150px; height: 150px; border: 5px solid #dc3545; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 16px; color: #dc3545; font-weight: 700; transform: rotate(-15deg); opacity: .7; text-align: center; padding: 20px; line-height: 1.2;
+    }
+    .seal-img {
+      position: absolute; right: 100px; top: -50px; width: 150px; height: 150px; border-radius: 50%;
+      object-fit: contain; display: none;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.25));
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .container { flex-direction: column; }
+      .control-panel { flex: 1 1 auto; max-height: none; }
+      .student-card, .preview-title { width: 100%; max-width: 500px; margin: 0 auto; }
+    }
+
+    /* 打印：根据活动模块切纸张 */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .container { display: block; }
+      .control-panel { display: none; }
+      .student-card { box-shadow: none; border-radius: 8px; page-break-after: always; margin: 0; }
+      .certificate { width: 100%; height: 100vh; padding: 40mm 30mm; box-shadow: none; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="control-panel">
+      <h1>🎓 证件与文档生成系统</h1>
+      <div class="module-selector">
+        <button class="mod-btn active" data-mod="card">学生证</button>
+        <button class="mod-btn" data-mod="admission">录取通知书</button>
+        <button class="mod-btn" data-mod="enrollment">在读证明</button>
+      </div>
+      <div class="form-group">
+        <label for="sealFile">上传印章（通知书/在读证明）</label>
+        <input type="file" id="sealFile" accept="image/*">
+      </div>
+
+      <!-- 学生证表单（中文汉化） -->
+      <div id="cardForm" class="form-section active">
+        <div class="form-section-title">基本信息</div>
+        <div class="form-group">
+          <label for="universityName">大学名称</label>
+          <input type="text" id="universityName" value="帕米尔大学">
+        </div>
+        <div class="form-group">
+          <label for="cardSubtitle">副标题</label>
+          <input type="text" id="cardSubtitle" value="国际学生证">
+        </div>
+        <div class="form-group">
+          <label for="logo">校徽</label>
+          <input type="file" id="logo" accept="image/*">
+        </div>
+        <div class="form-group">
+          <label for="photo">学生照片</label>
+          <input type="file" id="photo" accept="image/*">
+        </div>
+
+        <div class="form-separator"></div>
+        <div class="form-section-title">学生信息</div>
+        <div class="form-group">
+          <label for="nameLabel">姓名标签</label>
+          <input type="text" id="nameLabel" value="姓名">
+        </div>
+        <div class="form-group">
+          <label for="studentName">学生姓名</label>
+          <input type="text" id="studentName" value="张三">
+        </div>
+        <div class="form-group">
+          <label for="idLabel">学号标签</label>
+          <input type="text" id="idLabel" value="学号">
+        </div>
+        <div class="form-group">
+          <label for="studentId">学生证号</label>
+          <input type="text" id="studentId" value="INT140639">
+        </div>
+        <div class="form-group">
+          <label for="facultyLabel">院系标签</label>
+          <input type="text" id="facultyLabel" value="院系">
+        </div>
+        <div class="form-group">
+          <label for="faculty">院系</label>
+          <input type="text" id="faculty" value="物理学院">
+        </div>
+
+        <div class="form-separator"></div>
+        <div class="form-section-title">日期信息</div>
+        <div class="form-group">
+          <label for="issueDateLabel">发证日期标签</label>
+          <input type="text" id="issueDateLabel" value="发证日期">
+        </div>
+        <div class="form-group">
+          <label for="issueDate">发证日期</label>
+          <input type="date" id="issueDate" value="2023-11-12">
+        </div>
+        <div class="form-group">
+          <label for="validDateLabel">有效期标签</label>
+          <input type="text" id="validDateLabel" value="有效期至">
+        </div>
+        <div class="form-group">
+          <label for="validDate">有效期至</label>
+          <input type="date" id="validDate" value="2027-11-12">
+        </div>
+
+        <div class="form-separator"></div>
+        <div class="form-section-title">背面信息</div>
+        <div class="form-group">
+          <label for="addressTitle">地址标题</label>
+          <input type="text" id="addressTitle" value="持证人地址">
+        </div>
+        <div class="form-group">
+          <label for="address">地址</label>
+          <input type="text" id="address" value="成都市锦江区XX路100号">
+        </div>
+        <div class="form-group">
+          <label for="notice">注意事项</label>
+          <textarea id="notice">本卡属于大学所有，如有需要应予以返还。若拾获，请交至最近的大学办公室。</textarea>
+        </div>
+        <div class="form-group">
+          <label for="signatureText">签名</label>
+          <input type="text" id="signatureText" value="张三">
+        </div>
+        <div class="form-group">
+          <label for="signatureLabel">签名标签</label>
+          <input type="text" id="signatureLabel" value="持证人签名">
+        </div>
+
+        <div class="button-group">
+          <button class="btn-primary" id="btnUpdateCard">更新预览</button>
+          <button class="btn-secondary" id="btnPrintCard">打印学生证</button>
+        </div>
+      </div>
+
+      <!-- 录取通知书表单（保持原文） -->
+      <div id="admissionForm" class="form-section" style="display:none;">
+        <div class="form-section-title">录取通知书</div>
+        <div class="form-group"><label for="letterNumber">通知书编号</label><input type="text" id="letterNumber" value="№ 2024/09/1234"></div>
+        <div class="form-group"><label for="admissionDate">录取日期</label><input type="date" id="admissionDate" value="2024-07-15"></div>
+        <div class="form-group"><label for="studentNameAdm">学生姓名</label><input type="text" id="studentNameAdm" value="Иванов Иван Иванович"></div>
+        <div class="form-group"><label for="passportNumber">护照号码</label><input type="text" id="passportNumber" value="A1234567"></div>
+        <div class="form-group"><label for="studentIdAdm">学生编号</label><input type="text" id="studentIdAdm" value="2024091234"></div>
+        <div class="form-group"><label for="facultyAdm">院系</label><input type="text" id="facultyAdm" value="Факультет информационных технологий"></div>
+        <div class="form-group"><label for="specialty">专业</label><input type="text" id="specialty" value="Компьютерные науки"></div>
+        <div class="form-group"><label for="educationLevel">教育层次</label>
+          <select id="educationLevel"><option value="бакалавриат">бакалавриат</option><option value="магистратура">магистратура</option><option value="докторантура">докторантура</option></select>
+        </div>
+        <div class="form-group"><label for="studyPeriod">学习年限（年）</label><input type="text" id="studyPeriod" value="4"></div>
+        <div class="form-group"><label for="academicYear">学年</label><input type="text" id="academicYear" value="2024-2025"></div>
+        <div class="form-group"><label for="deanName">院长姓名</label><input type="text" id="deanName" value="Петров Петр Петрович"></div>
+        <div class="form-separator"></div>
+        <div class="form-group"><label for="universityNameRu">大学名称（俄语）</label><input type="text" id="universityNameRu" value="ПАМИР УНИВЕРСИТЕТ"></div>
+        <div class="form-group"><label for="universityNameEn">大学名称（英语）</label><input type="text" id="universityNameEn" value="PAMIR UNIVERSITY"></div>
+        <div class="button-group"><button class="btn-primary" id="btnPreviewAdmission">预览</button><button class="btn-success" id="btnPrintAdmission">打印</button></div>
+      </div>
+
+      <!-- 在读证明表单（保持原文） -->
+      <div id="enrollmentForm" class="form-section" style="display:none;">
+        <div class="form-section-title">在读证明</div>
+        <div class="form-group"><label for="certificateNumber">证明编号</label><input type="text" id="certificateNumber" value="С-2024-001234"></div>
+        <div class="form-group"><label for="certificateDate">出具日期</label><input type="date" id="certificateDate" value="2024-01-15"></div>
+        <div class="form-group"><label for="enrollStudentName">学生姓名</label><input type="text" id="enrollStudentName" value="Иванов Иван Иванович"></div>
+        <div class="form-group"><label for="enrollStudentId">学生编号</label><input type="text" id="enrollStudentId" value="2024091234"></div>
+        <div class="form-group"><label for="enrollPassport">护照号码</label><input type="text" id="enrollPassport" value="A1234567"></div>
+        <div class="form-group"><label for="enrollFaculty">院系</label><input type="text" id="enrollFaculty" value="Факультет информационных технологий"></div>
+        <div class="form-group"><label for="enrollSpecialty">专业</label><input type="text" id="enrollSpecialty" value="Компьютерные науки"></div>
+        <div class="form-group"><label for="enrollYear">入学年份</label><input type="text" id="enrollYear" value="2024"></div>
+        <div class="form-group"><label for="enrollCourse">年级/课程</label><input type="text" id="enrollCourse" value="1"></div>
+        <div class="form-group"><label for="rectorName">校长姓名</label><input type="text" id="rectorName" value="Сидоров Сидор Сидорович"></div>
+        <div class="form-separator"></div>
+        <div class="form-group"><label for="universityNameRu2">大学名称（俄语）</label><input type="text" id="universityNameRu2" value="ПАМИР УНИВЕРСИТЕТ"></div>
+        <div class="form-group"><label for="universityNameEn2">大学名称（英语）</label><input type="text" id="universityNameEn2" value="PAMIR UNIVERSITY"></div>
+        <div class="button-group"><button class="btn-primary" id="btnPreviewEnrollment">预览</button><button class="btn-success" id="btnPrintEnrollment">打印</button></div>
+      </div>
+    </div>
+
+    <div class="preview-area">
+      <!-- 学生证预览 -->
+      <div class="preview-title" id="cardTitleFront">学生证预览 - 正面</div>
+      <div class="student-card card-front" id="cardFront">
+        <div class="header">
+          <div class="logo-container">
+            <img id="logoImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%234a5568'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='14'%3ELOGO%3C/text%3E%3C/svg%3E" alt="Logo">
+          </div>
+          <div class="header-text">
+            <div class="university-name" id="universityNameDisplay">帕米尔大学</div>
+            <div class="card-subtitle" id="cardSubtitleDisplay">国际学生证</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="photo-container">
+            <img id="photoImg" style="display:none;" alt="Student Photo">
+            <div class="photo-placeholder" id="photoPlaceholder">学生照片<br>3x4</div>
+          </div>
+          <div class="info-section">
+            <div class="info-group">
+              <div class="info-label" id="nameLabelDisplay">姓名</div>
+              <div class="info-value" id="studentNameDisplay">张三</div>
+            </div>
+            <div class="info-group">
+              <div class="info-label" id="idLabelDisplay">学号</div>
+              <div class="info-value" id="studentIdDisplay">INT140639</div>
+            </div>
+            <div class="info-group">
+              <div class="info-label" id="facultyLabelDisplay">院系</div>
+              <div class="info-value" id="facultyDisplay">物理学院</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="date-group">
+            <div class="date-label" id="issueDateLabelDisplay">发证日期</div>
+            <div class="date-value" id="issueDateDisplay">2023-11-12</div>
+          </div>
+          <div class="date-group">
+            <div class="date-label" id="validDateLabelDisplay">有效期至</div>
+            <div class="date-value" id="validDateDisplay">2027-11-12</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-title" id="cardTitleBack">学生证预览 - 背面</div>
+      <div class="student-card card-back" id="cardBack">
+        <div class="black-bar"></div>
+        <div class="content">
+          <div class="address-section">
+            <div class="section-title" id="addressTitleDisplay">持证人地址</div>
+            <div class="address-text" id="addressDisplay">成都市锦江区XX路100号</div>
+          </div>
+          <div class="notice-text" id="noticeDisplay">本卡属于大学所有，如有需要应予以返还。若拾获，请交至最近的大学办公室。</div>
+          <div class="signature-section">
+            <div class="signature-area">
+              <div class="signature-text" id="signatureTextDisplay">张三</div>
+              <div class="signature-label" id="signatureLabelDisplay">持证人签名</div>
+            </div>
+            <div class="back-logo">
+              <img id="backLogoImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%234a5568'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='14'%3ELOGO%3C/text%3E%3C/svg%3E" alt="Logo">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 录取通知书预览 -->
+      <div id="admissionPreview" class="certificate admission-letter" style="display:none;">
+        <div class="certificate-border"></div>
+        <div class="letter-header">
+          <div class="university-logo">ПУ<br>ЛОГО</div>
+          <div class="university-name" id="previewUniversityName">ПАМИР УНИВЕРСИТЕТ</div>
+          <div class="university-name-en" id="previewUniversityNameEn">PAMIR UNIVERSITY</div>
+        </div>
+        <div class="document-title">录取通知书</div>
+        <div class="letter-body">
+          <p><span id="previewLetterNumber">№ 2024/09/1234</span> от <span id="previewAdmissionDate">15.07.2024</span></p>
+          <div class="student-info">
+            <div class="info-row"><div class="info-label">学生姓名：</div><div class="info-value" id="previewStudentName">Иванов Иван Иванович</div></div>
+            <div class="info-row"><div class="info-label">护照号码：</div><div class="info-value" id="previewPassportNumber">A1234567</div></div>
+            <div class="info-row"><div class="info-label">学生编号：</div><div class="info-value" id="previewStudentId">2024091234</div></div>
+            <div class="info-row"><div class="info-label">院系：</div><div class="info-value" id="previewFaculty">Факультет информационных технологий</div></div>
+            <div class="info-row"><div class="info-label">专业：</div><div class="info-value" id="previewSpecialty">Компьютерные науки</div></div>
+            <div class="info-row"><div class="info-label">教育层次：</div><div class="info-value" id="previewEducationLevel">бакалавриат</div></div>
+            <div class="info-row"><div class="info-label">学习年限：</div><div class="info-value" id="previewStudyPeriod">4 年</div></div>
+            <div class="info-row"><div class="info-label">学年：</div><div class="info-value" id="previewAcademicYear">2024-2025</div></div>
+          </div>
+          <p>Уведомляем Вас, что Вы успешно зачислены в Памир Университет в <span id="previewEducationLevel2">бакалавриат</span> на специальность "<span id="previewSpecialty2">Компьютерные науки</span>" на <span id="previewStudyPeriod2">4</span>-летний срок обучения.</p>
+          <p>Начало занятий: 1 сентября <span id="previewAcademicYearStart">2024</span> года. Просим прибыть в университет в установленные сроки с необходимыми документами.</p>
+          <p>Поздравляем с началом учебы в нашем университете и желаем Вам успехов в получении знаний!</p>
+        </div>
+        <div class="seal-section">
+          <div class="official-seal">ПЕЧАТЬ УНИВЕРСИТЕТА</div>
+          <img id="sealImgAdmission" class="seal-img" alt="Seal">
+        </div>
+        <div class="signature-section" style="display:flex; justify-content:space-between; margin-top:40px;">
+          <div class="signature-block"><div class="signature-line"></div><div class="signature-title">Декан факультета</div><div id="previewDeanName">Петров Петр Петрович</div></div>
+          <div class="signature-block"><div class="signature-line"></div><div class="signature-title">Дата</div><div id="previewSignatureDate">15.07.2024</div></div>
+        </div>
+      </div>
+
+      <!-- 在读证明预览 -->
+      <div id="enrollmentPreview" class="certificate enrollment-certificate" style="display:none;">
+        <div class="certificate-border"></div>
+        <div class="certificate-header">
+          <div class="university-logo">ПУ<br>ЛОГО</div>
+          <div class="university-name" id="previewEnrollUniversityName">ПАМИР УНИВЕРСИТЕТ</div>
+          <div class="university-name-en" id="previewEnrollUniversityNameEn">PAMIR UNIVERSITY</div>
+        </div>
+        <div class="certificate-number" id="previewCertificateNumber">С-2024-001234</div>
+        <div class="document-title">在读证明</div>
+        <div class="certificate-body">
+          <p style="text-align:center; font-weight:bold; font-size:18px;">Настоящая справка выдана <span id="previewEnrollStudentName2" class="highlight">Иванову Ивану Ивановичу</span>, студенту Памир Университета</p>
+          <p>Настоящим подтверждаем, что гражданин <span id="previewEnrollStudentName3" class="highlight">Иванов Иван Иванович</span>, паспорт № <span id="previewEnrollPassport2" class="highlight">A1234567</span>, является студентом <span id="previewEnrollUniversityName2" class="highlight">Памир Университета</span> с <span id="previewEnrollYear2" class="highlight">2024</span> года.</p>
+          <p>Обучается на <span id="previewEnrollCourse2" class="highlight">1</span> курсе <span id="previewEnrollFaculty2" class="highlight">Факультета информационных технологий</span> по специальности "<span id="previewEnrollSpecialty2" class="highlight">Компьютерные науки</span>".</p>
+          <p>Номер студенческого билета: <span id="previewEnrollStudentId2" class="highlight">2024091234</span></p>
+          <p>Справка выдана для предоставления по месту требования.</p>
+        </div>
+        <div class="seal-section">
+          <div class="official-seal">ПЕЧАТЬ УНИВЕРСИТЕТА</div>
+          <img id="sealImgEnrollment" class="seal-img" alt="Seal">
+          <div class="signature-section" style="display:flex; justify-content:space-between; margin-top:40px;">
+            <div class="signature-block"><div class="signature-line"></div><div class="signature-title">Ректор университета</div><div id="previewRectorName">Сидоров Сидор Сидорович</div></div>
+            <div class="signature-block"><div class="signature-line"></div><div class="signature-title">Дата выдачи</div><div id="previewCertificateDate">15.01.2024</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 模块切换
+    const modButtons = document.querySelectorAll('.mod-btn');
+    const sections = { card: 'cardForm', admission: 'admissionForm', enrollment: 'enrollmentForm' };
+    const previews = { card: ['cardFront','cardBack','cardTitleFront','cardTitleBack'], admission: ['admissionPreview'], enrollment: ['enrollmentPreview'] };
+
+    modButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        modButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mod = btn.dataset.mod;
+
+        // 显示表单
+        Object.values(sections).forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById(sections[mod]).style.display = 'block';
+
+        // 显示预览
+        ['cardFront','cardBack','cardTitleFront','cardTitleBack','admissionPreview','enrollmentPreview'].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (id.includes('Title')) el.style.display = 'none';
+          else el.style.display = 'none';
+        });
+        previews[mod].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.style.display = (id.includes('Title') ? 'block' : 'block');
+        });
+      });
+    });
+
+    // 初始化默认显示学生证
+    document.getElementById('cardForm').style.display = 'block';
+    document.getElementById('cardFront').style.display = 'block';
+    document.getElementById('cardBack').style.display = 'block';
+    document.getElementById('cardTitleFront').style.display = 'block';
+    document.getElementById('cardTitleBack').style.display = 'block';
+
+    // 学生证：实时更新
+    function formatDateISO(dateString) { if (!dateString) return '____-__-__'; return dateString; }
+    function updateCard() {
+      document.getElementById('universityNameDisplay').textContent = document.getElementById('universityName').value || '大学名称';
+      document.getElementById('cardSubtitleDisplay').textContent = document.getElementById('cardSubtitle').value || '学生证';
+
+      document.getElementById('nameLabelDisplay').textContent = document.getElementById('nameLabel').value || '姓名';
+      document.getElementById('studentNameDisplay').textContent = document.getElementById('studentName').value || '学生姓名';
+
+      document.getElementById('idLabelDisplay').textContent = document.getElementById('idLabel').value || '学号';
+      document.getElementById('studentIdDisplay').textContent = document.getElementById('studentId').value || '学号';
+
+      document.getElementById('facultyLabelDisplay').textContent = document.getElementById('facultyLabel').value || '院系';
+      document.getElementById('facultyDisplay').textContent = document.getElementById('faculty').value || '院系';
+
+      document.getElementById('issueDateLabelDisplay').textContent = document.getElementById('issueDateLabel').value || '发证日期';
+      document.getElementById('issueDateDisplay').textContent = formatDateISO(document.getElementById('issueDate').value);
+
+      document.getElementById('validDateLabelDisplay').textContent = document.getElementById('validDateLabel').value || '有效期至';
+      document.getElementById('validDateDisplay').textContent = formatDateISO(document.getElementById('validDate').value);
+
+      document.getElementById('addressTitleDisplay').textContent = document.getElementById('addressTitle').value || '持证人地址';
+      document.getElementById('addressDisplay').textContent = document.getElementById('address').value || '地址';
+      document.getElementById('noticeDisplay').textContent = document.getElementById('notice').value || '';
+      document.getElementById('signatureTextDisplay').textContent = document.getElementById('signatureText').value || '签名';
+      document.getElementById('signatureLabelDisplay').textContent = document.getElementById('signatureLabel').value || '持证人签名';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      updateCard();
+      document.querySelectorAll('#cardForm input[type="text"], #cardForm input[type="date"], #cardForm textarea').forEach(input => {
+        input.addEventListener('input', updateCard);
+      });
+    });
+    document.getElementById('logo').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          document.getElementById('logoImg').src = ev.target.result;
+          document.getElementById('backLogoImg').src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    document.getElementById('photo').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const img = document.getElementById('photoImg');
+          img.src = ev.target.result; img.style.display = 'block';
+          document.getElementById('photoPlaceholder').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    document.getElementById('btnUpdateCard').addEventListener('click', updateCard);
+    document.getElementById('btnPrintCard').addEventListener('click', () => {
+      // 切到学生证模块以应用学生证版式
+      document.querySelector('.mod-btn[data-mod="card"]').click();
+      window.print();
+    });
+
+    // 通知书/证明：生成预览
+    function formatRu(dateString) {
+      if (!dateString) return '';
+      const d = new Date(dateString); const day = String(d.getDate()).padStart(2,'0'); const month = String(d.getMonth()+1).padStart(2,'0'); const year = d.getFullYear();
+      return `${day}.${month}.${year}`;
+    }
+    function previewAdmission() {
+      document.getElementById('previewUniversityName').textContent = document.getElementById('universityNameRu').value || 'ПАМИР УНИВЕРСИТЕТ';
+      document.getElementById('previewUniversityNameEn').textContent = document.getElementById('universityNameEn').value || 'PAMIR UNIVERSITY';
+      document.getElementById('previewLetterNumber').textContent = document.getElementById('letterNumber').value || '';
+      const d = document.getElementById('admissionDate').value;
+      const fd = formatRu(d);
+      document.getElementById('previewAdmissionDate').textContent = fd || '';
+      document.getElementById('previewStudentName').textContent = document.getElementById('studentNameAdm').value || '';
+      document.getElementById('previewPassportNumber').textContent = document.getElementById('passportNumber').value || '';
+      document.getElementById('previewStudentId').textContent = document.getElementById('studentIdAdm').value || '';
+      document.getElementById('previewFaculty').textContent = document.getElementById('facultyAdm').value || '';
+      document.getElementById('previewSpecialty').textContent = document.getElementById('specialty').value || '';
+      document.getElementById('previewSpecialty2').textContent = document.getElementById('specialty').value || '';
+      document.getElementById('previewEducationLevel').textContent = document.getElementById('educationLevel').value || '';
+      document.getElementById('previewEducationLevel2').textContent = document.getElementById('educationLevel').value || '';
+      const sp = document.getElementById('studyPeriod').value || '';
+      document.getElementById('previewStudyPeriod').textContent = sp ? (sp + ' года') : '';
+      document.getElementById('previewStudyPeriod2').textContent = sp || '';
+      const ay = document.getElementById('academicYear').value || '';
+      document.getElementById('previewAcademicYear').textContent = ay;
+      document.getElementById('previewAcademicYearStart').textContent = ay.split('-')[0] || '';
+      document.getElementById('previewDeanName').textContent = document.getElementById('deanName').value || '';
+      document.getElementById('previewSignatureDate').textContent = fd || '';
+      // 显示预览
+      document.querySelector('.mod-btn[data-mod="admission"]').click();
+      document.getElementById('admissionPreview').style.display = 'block';
+    }
+    function previewEnrollment() {
+      document.getElementById('previewEnrollUniversityName').textContent = document.getElementById('universityNameRu2').value || 'ПАМИР УНИВЕРСИТЕТ';
+      document.getElementById('previewEnrollUniversityNameEn').textContent = document.getElementById('universityNameEn2').value || 'PAMIR UNIVERSITY';
+      document.getElementById('previewCertificateNumber').textContent = document.getElementById('certificateNumber').value || '';
+      const d = document.getElementById('certificateDate').value; const fd = formatRu(d);
+      document.getElementById('previewCertificateDate').textContent = fd || '';
+      const sn = document.getElementById('enrollStudentName').value || '';
+      document.getElementById('previewEnrollStudentName2').textContent = sn;
+      document.getElementById('previewEnrollStudentName3').textContent = sn;
+      document.getElementById('previewEnrollPassport2').textContent = document.getElementById('enrollPassport').value || '';
+      document.getElementById('previewEnrollUniversityName2').textContent = document.getElementById('universityNameRu2').value || 'ПАМИР УНИВЕРСИТЕТ';
+      document.getElementById('previewEnrollYear2').textContent = document.getElementById('enrollYear').value || '';
+      document.getElementById('previewEnrollCourse2').textContent = document.getElementById('enrollCourse').value || '';
+      document.getElementById('previewEnrollFaculty2').textContent = document.getElementById('enrollFaculty').value || '';
+      document.getElementById('previewEnrollSpecialty2').textContent = document.getElementById('enrollSpecialty').value || '';
+      document.getElementById('previewEnrollStudentId2').textContent = document.getElementById('enrollStudentId').value || '';
+      document.getElementById('previewRectorName').textContent = document.getElementById('rectorName').value || '';
+      // 显示预览
+      document.querySelector('.mod-btn[data-mod="enrollment"]').click();
+      document.getElementById('enrollmentPreview').style.display = 'block';
+    }
+    // 自定义印章应用
+    function applySeal() {
+      const admSeal = document.getElementById('sealImgAdmission');
+      const enrSeal = document.getElementById('sealImgEnrollment');
+      const admDefault = document.querySelector('#admissionPreview .official-seal');
+      const enrDefault = document.querySelector('#enrollmentPreview .official-seal');
+      if (window.__sealDataUrl) {
+        if (admSeal) { admSeal.src = window.__sealDataUrl; admSeal.style.display = 'block'; }
+        if (enrSeal) { enrSeal.src = window.__sealDataUrl; enrSeal.style.display = 'block'; }
+        if (admDefault) admDefault.style.display = 'none';
+        if (enrDefault) enrDefault.style.display = 'none';
+      } else {
+        if (admSeal) admSeal.style.display = 'none';
+        if (enrSeal) enrSeal.style.display = 'none';
+        if (admDefault) admDefault.style.display = 'flex';
+        if (enrDefault) enrDefault.style.display = 'flex';
+      }
+    }
+    document.getElementById('sealFile')?.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = ev => { window.__sealDataUrl = ev.target.result; applySeal(); };
+        reader.readAsDataURL(file);
+      } else { window.__sealDataUrl = null; applySeal(); }
+    });
+
+    document.getElementById('btnPreviewAdmission').addEventListener('click', () => { previewAdmission(); applySeal(); });
+    document.getElementById('btnPrintAdmission').addEventListener('click', () => { previewAdmission(); applySeal(); window.print(); });
+    document.getElementById('btnPreviewEnrollment').addEventListener('click', () => { previewEnrollment(); applySeal(); });
+    document.getElementById('btnPrintEnrollment').addEventListener('click', () => { previewEnrollment(); applySeal(); window.print(); });
+
+    // 初始化日期为今天（通知书/证明）
+    window.onload = function () {
+      const today = new Date().toISOString().split('T')[0];
+      const ad = document.getElementById('admissionDate'); if (ad) ad.value = today;
+      const cd = document.getElementById('certificateDate'); if (cd) cd.value = today;
+    };
+  </script>
+</body>
+</html>
